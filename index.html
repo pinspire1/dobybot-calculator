@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dobybot ROI 試算器</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght=400;500;700;900&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Noto Sans TC', sans-serif; background-color: #f8fafc; }
         .accent-bg { background-color: #deff9a; }
@@ -13,15 +13,66 @@
         input[type=range]::-webkit-slider-runnable-track { background: #e2e8f0; height: 8px; border-radius: 4px; }
         input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 20px; width: 20px; border-radius: 50%; background: #4d7c0f; margin-top: -6px; cursor: pointer; }
         
-        /* 列印優化 */
+        .print-only { display: none; }
+
+        /* =======================================================
+           ✨ 頂級商務美學 - A4 一頁式完美列印優化 (垂直參數卡版)
+           ======================================================= */
         @media print {
+            @page {
+                size: A4 portrait;
+                margin: 1.2cm 1.4cm; /* 黃金邊距確保不溢頁 */
+            }
+            body { background-color: white; padding: 0; color: #0f172a; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             .no-print { display: none !important; }
-            body { background-color: white; padding: 0; }
+            .print-only { display: block !important; }
             .card-container { box-shadow: none !important; border: none !important; max-width: 100% !important; width: 100% !important; }
-            .grid { display: block !important; }
-            .print-layout { grid-template-columns: 1fr !important; }
-            .bg-slate-900 { background-color: #1e293b !important; -webkit-print-color-adjust: exact; }
-            .accent-bg { background-color: #deff9a !important; -webkit-print-color-adjust: exact; }
+            
+            /* 左右 1:1 強制等高網格佈局 */
+            .print-layout { 
+                display: grid !important; 
+                grid-template-columns: 1fr 1fr !important; 
+                gap: 2.2rem !important; 
+                page-break-inside: avoid;
+                break-inside: avoid;
+                align-items: stretch !important; /* 強制左右欄對齊等高 */
+            }
+
+            /* 左側欄內部彈性佈局：將空間撐滿，讓參數卡無縫填滿左下角 */
+            .left-print-col {
+                display: flex !important;
+                flex-direction: column !important;
+                justify-content: stroke !important;
+                height: 100% !important;
+            }
+            
+            /* 輕量美學中央垂直分隔線 */
+            .print-layout {
+                position: relative;
+            }
+            .print-layout::before {
+                content: "";
+                position: absolute;
+                top: 0%;
+                bottom: 0%;
+                left: 50%;
+                width: 1px;
+                background-color: #f1f5f9 !important;
+            }
+            
+            /* 背景與顏色防禦 */
+            .bg-slate-900 { background-color: #0f172a !important; border: 1px solid #0f172a !important; }
+            .accent-bg { background-color: #deff9a !important; border: 1px solid #d9f99d !important; }
+            .bg-slate-50 { background-color: #f8fafc !important; border: 1px solid #e2e8f0 !important; }
+            
+            .text-rose-400 { color: #ef4444 !important; font-weight: 700 !important; }
+            .text-lime-400 { color: #22c55e !important; font-weight: 700 !important; }
+            .accent-text { color: #4d7c0f !important; }
+            
+            /* 精準微調列印間距 */
+            .p-8 { padding: 1.25rem !important; }
+            .p-6 { padding: 1.25rem !important; }
+            .mb-8 { margin-bottom: 1.0rem !important; }
         }
     </style>
 </head>
@@ -42,108 +93,157 @@
         </div>
 
         <div class="p-6 md:p-8 grid grid-cols-1 md:grid-cols-2 gap-8 print-layout">
-            <div class="space-y-8">
-                <section class="no-print">
-                    <div class="flex justify-between mb-4">
-                        <label class="font-bold text-slate-700">每日出貨量 (單)</label>
-                        <span class="text-xl font-bold accent-text" id="dailyVolumeText">180 單</span>
-                    </div>
-                    <input type="range" id="dailyVolume" min="50" max="6000" step="10" value="180" class="w-full">
-                </section>
-
-                <section class="no-print">
-                    <div class="flex justify-between mb-4">
-                        <label class="font-bold text-slate-700">問題訂單率 (每百單發生幾件)</label>
-                        <span class="text-xl font-bold accent-text" id="errorRateText">0.5 件</span>
-                    </div>
-                    <input type="range" id="errorRate" min="0.1" max="5.0" step="0.1" value="0.5" class="w-full">
-                </section>
-
-                <section class="grid grid-cols-2 gap-4 no-print">
+            
+            <div class="left-print-col flex flex-col justify-between h-full space-y-6">
+                
+                <div class="space-y-6 w-full flex-1 flex flex-col justify-between">
                     <div>
-                        <label class="block text-xs font-bold text-slate-400 uppercase mb-2">每月工作天數</label>
-                        <input type="number" id="workDays" value="22" min="1" max="31" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-lime-300 outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-400 uppercase mb-2">包貨人員數量</label>
-                        <input type="number" id="staffCount" value="2" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-lime-300 outline-none">
-                    </div>
-                </section>
+                        <div class="no-print space-y-6 mb-6">
+                            <section>
+                                <div class="flex justify-between mb-3">
+                                    <label class="font-bold text-slate-700">每日出貨量 (單)</label>
+                                    <span class="text-xl font-bold accent-text" id="dailyVolumeText">180 單</span>
+                                </div>
+                                <input type="range" id="dailyVolume" min="50" max="6000" step="10" value="180" class="w-full">
+                            </section>
 
-                <section class="no-print">
-                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2">包貨人員平均月薪 (NT$)</label>
-                    <input type="number" id="staffSalary" value="32000" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-lime-300 outline-none">
-                </section>
+                            <section>
+                                <div class="flex justify-between mb-3">
+                                    <label class="font-bold text-slate-700">問題訂單率 (每百單發生幾件)</label>
+                                    <span class="text-xl font-bold accent-text" id="errorRateText">0.5 件</span>
+                                </div>
+                                <input type="range" id="errorRate" min="0.1" max="5.0" step="0.1" value="0.5" class="w-full">
+                            </section>
 
-                <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200 shadow-sm">
-                    <h3 class="font-bold text-slate-800 mb-5 flex items-center border-b pb-3">
-                        <svg class="w-5 h-5 mr-2 text-slate-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path></svg>
-                        每月問題訂單隱性成本拆解
-                    </h3>
-                    <div class="space-y-4 text-sm" id="costBreakdown">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2">每月工作天數</label>
+                                    <input type="number" id="workDays" value="22" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-lime-300 outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2">包貨人員數量</label>
+                                    <input type="number" id="staffCount" value="2" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-lime-300 outline-none">
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2">包貨人員平均月薪 (NT$)</label>
+                                    <input type="number" id="staffSalary" value="32000" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-lime-300 outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2">平均每單商品價值 (NT$)</label>
+                                    <input type="number" id="productValue" value="500" class="w-full p-2 border rounded-lg focus:ring-2 focus:ring-lime-300 outline-none">
+                                </div>
+                            </div>
+
+                            <div class="bg-lime-50 p-4 rounded-xl border border-lime-200">
+                                <div class="flex justify-between mb-2">
+                                    <label class="text-xs font-bold text-slate-700 uppercase">Dobybot 智慧影像單價 (元/單)</label>
+                                    <span class="text-sm font-bold accent-text" id="dobybotPriceText">1.0 元</span>
+                                </div>
+                                <input type="range" id="dobybotPrice" min="0.3" max="4.0" step="0.1" value="1.0" class="w-full">
+                            </div>
                         </div>
+
+                        <div class="bg-slate-50 p-6 rounded-2xl shadow-sm">
+                            <h3 class="font-bold text-slate-800 mb-4 flex items-center border-b pb-3">
+                                <span class="w-2.5 h-2.5 bg-rose-500 rounded-full mr-2"></span>
+                                每月問題訂單隱性成本拆解
+                            </h3>
+                            <div class="space-y-3 text-sm" id="costBreakdown"></div>
+                        </div>
+                    </div>
+
+                    <div class="print-only w-full bg-slate-50 border border-slate-200 p-5 rounded-2xl mt-6 flex-1">
+                        <h4 class="font-bold text-slate-700 text-xs mb-3 flex items-center tracking-wide uppercase border-b border-slate-200 pb-2">
+                            <svg class="w-4 h-4 mr-1.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                            本份報告試算基礎參數
+                        </h4>
+                        <div class="bg-white p-4 rounded-xl border border-slate-100 space-y-3 text-sm shadow-sm">
+                            <div class="flex justify-between items-center border-b border-slate-100 pb-1.5">
+                                <span class="text-slate-400 font-medium">每日出貨量</span>
+                                <span id="p-volume" class="font-bold text-slate-800 text-base">180 單</span>
+                            </div>
+                            <div class="flex justify-between items-center border-b border-slate-100 pb-1.5">
+                                <span class="text-slate-400 font-medium">問題訂單率</span>
+                                <span id="p-rate" class="font-bold text-slate-800 text-base">0.5%</span>
+                            </div>
+                            <div class="flex justify-between items-center border-b border-slate-100 pb-1.5">
+                                <span class="text-slate-400 font-medium">每月工作天數</span>
+                                <span id="p-days" class="font-bold text-slate-800 text-base">22 天</span>
+                            </div>
+                            <div class="flex justify-between items-center border-b border-slate-100 pb-1.5">
+                                <span class="text-slate-400 font-medium">平均每單商品價值</span>
+                                <span id="p-value" class="font-bold text-slate-800 text-base">NT$500</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-slate-400 font-medium">Dobybot 影像單價</span>
+                                <span id="p-dbprice" class="font-bold accent-text text-base">1.0 元 / 單</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
+
             </div>
 
-            <div class="space-y-6">
-                <div class="bg-slate-900 rounded-3xl p-8 text-white shadow-2xl relative overflow-hidden">
-                    <div class="relative z-10">
-                        <div class="text-slate-400 text-xs font-bold mb-2 tracking-widest uppercase">每月問題訂單估計總損失</div>
-                        <div class="text-4xl md:text-5xl font-black text-white mb-8" id="totalLossRange">NT$0</div>
+            <div class="space-y-6 flex flex-col justify-between h-full">
+                <div class="space-y-6 w-full">
+                    <div class="bg-slate-900 rounded-3xl p-6 text-white shadow-2xl relative overflow-hidden">
+                        <div class="text-slate-400 text-xs font-bold mb-1 tracking-widest uppercase">每月問題訂單估計總損失</div>
+                        <div class="text-4xl font-black text-white mb-5 border-b border-slate-800 pb-3" id="totalLossRange">NT$0</div>
                         
-                        <div class="grid grid-cols-2 gap-6 border-t border-slate-800 pt-8">
-                            <div class="space-y-1">
-                                <div class="text-slate-500 text-xs font-bold uppercase">未導入 Dobybot</div>
-                                <div class="text-2xl font-bold text-rose-400" id="costBefore">NT$0</div>
-                                <div class="text-[10px] text-slate-600">隱性損失總計</div>
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center bg-slate-800/40 p-3 rounded-xl border border-slate-700/30">
+                                <div>
+                                    <div class="text-[10px] text-slate-400 font-bold uppercase">未導入 Dobybot</div>
+                                    <div class="text-xs text-slate-500">（隱性損失總計金額）</div>
+                                </div>
+                                <div class="text-xl font-bold text-rose-400" id="costBefore">NT$0</div>
                             </div>
-                            <div class="space-y-1">
-                                <div class="text-slate-500 text-xs font-bold uppercase">導入 Dobybot 後</div>
-                                <div class="text-2xl font-bold text-lime-400" id="costAfter">NT$0</div>
-                                <div class="text-[10px] text-slate-600">錄影費加上殘留爭議成本</div>
+                            <div class="flex justify-between items-center bg-slate-800/40 p-3 rounded-xl border border-slate-700/30">
+                                <div>
+                                    <div class="text-[10px] text-slate-400 font-bold uppercase">導入 Dobybot 後</div>
+                                    <div class="text-xs text-slate-500">（影像服務費 + 殘留爭議成本）</div>
+                                </div>
+                                <div class="text-xl font-bold text-lime-400" id="costAfter">NT$0</div>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <div class="accent-bg rounded-2xl p-6 border border-lime-200 flex justify-between items-center shadow-sm">
-                    <div>
-                        <div class="text-xs font-bold text-slate-600 mb-1 uppercase tracking-wider">每月預計節省</div>
-                        <div class="text-3xl font-black accent-text" id="monthlySavingsText">NT$0</div>
+                    <div class="accent-bg rounded-2xl p-6 shadow-sm">
+                        <div class="text-xs font-bold text-slate-600 mb-1 uppercase tracking-wider">每月預計節省（直接轉化為淨利）</div>
+                        <div class="text-4xl font-black accent-text" id="monthlySavingsText">NT$0</div>
                     </div>
-                    <div class="text-right">
-                        <div class="text-xs font-bold text-slate-600 mb-1 uppercase tracking-wider">系統回本期</div>
-                        <div class="text-2xl font-bold text-slate-900" id="paybackPeriod">0 個月</div>
-                    </div>
-                </div>
 
-                <div class="bg-white p-6 border border-slate-200 rounded-2xl space-y-6 shadow-sm">
-                    <p class="text-slate-600 text-sm leading-relaxed" id="summaryConclusion">
-                        正在計算最佳化 ROI 數據...
-                    </p>
-                    
-                    <div class="grid grid-cols-2 gap-4 pt-6 border-t border-dashed">
-                        <div>
-                            <div class="text-[10px] font-bold text-slate-400 uppercase mb-1">每月查證耗費工時</div>
-                            <div class="text-lg font-bold text-slate-700" id="disputeHours">約 0 小時</div>
+                    <div class="bg-white p-6 border border-slate-200 rounded-2xl space-y-4 shadow-sm">
+                        <p class="text-slate-600 text-sm leading-relaxed border-b pb-4" id="summaryConclusion">
+                            正在精算最佳化 ROI 數據...
+                        </p>
+                        
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <div class="text-[10px] font-bold text-slate-400 uppercase mb-1">每月查證耗費工時</div>
+                                <div class="text-base font-bold text-slate-700" id="disputeHours">約 0 小時</div>
+                            </div>
+                            <div>
+                                <div class="text-[10px] font-bold text-slate-400 uppercase mb-1">爭議耗費人力成本</div>
+                                <div class="text-base font-bold text-slate-700" id="disputeLaborCost">NT$0</div>
+                            </div>
                         </div>
-                        <div>
-                            <div class="text-[10px] font-bold text-slate-400 uppercase mb-1">爭議耗費人力成本</div>
-                            <div class="text-lg font-bold text-slate-700" id="disputeLaborCost">NT$0</div>
-                        </div>
-                    </div>
 
-                    <div class="no-print">
-                        <button class="w-full py-4 bg-slate-900 text-white font-bold rounded-xl hover:bg-black transition-all flex items-center justify-center shadow-lg">
-                            索取 Dobybot 詳細報價及方案
-                            <svg class="w-5 h-5 ml-2 text-lime-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
-                        </button>
+                        <div class="no-print pt-2">
+                            <button class="w-full py-4 bg-slate-900 text-white font-bold rounded-xl hover:bg-black transition-all flex items-center justify-center shadow-lg">
+                                索取 Dobybot 詳細報價及方案
+                                <svg class="w-5 h-5 ml-2 text-lime-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="p-8 bg-slate-50 text-center text-slate-400 text-xs border-t border-slate-100 uppercase tracking-widest">
+        <div class="p-4 bg-slate-50 text-center text-slate-400 text-[10px] border-t border-slate-100 uppercase tracking-widest no-print">
             Dobybot Smart Logistics &copy; 2026 ROI Analyzer tool
         </div>
     </div>
@@ -154,33 +254,31 @@
         const workDaysInput = document.getElementById('workDays');
         const staffCountInput = document.getElementById('staffCount');
         const staffSalaryInput = document.getElementById('staffSalary');
+        const productValueInput = document.getElementById('productValue');
+        const dobybotPriceInput = document.getElementById('dobybotPrice');
 
         function updateCalculator() {
-            const dailyVolume = parseInt(dailyVolumeInput.value);
-            const errorRate = parseFloat(errorRateInput.value);
+            const dailyVolume = parseInt(dailyVolumeInput.value) || 0;
+            const errorRate = parseFloat(errorRateInput.value) || 0;
             const workDays = parseInt(workDaysInput.value) || 1;
-            const staffCount = parseInt(staffCountInput.value) || 1;
             const staffSalary = parseInt(staffSalaryInput.value) || 0;
+            const productValue = parseInt(productValueInput.value) || 0;
+            const dobybotPrice = parseFloat(dobybotPriceInput.value) || 1.0;
 
-            // 1. 基本單量與問題單計算
             const monthlyOrders = dailyVolume * workDays; 
             const monthlyErrors = Math.round((monthlyOrders * errorRate) / 100);
-            
-            // 2. 依據台灣市場基本薪資動態計算時薪 (勞基法常態單月工作時數約工作天x8小時)
             const hourlyWage = Math.round(staffSalary / (workDays * 8)) || 160; 
 
-            // 3. 成本細項參數 (時間相關成本與時薪動態連動)
             const unitCosts = {
-                shipping: 85,                             // 台灣超商/宅配逆物流平均費用
-                product: 200,                            // 平均商品客單損耗
-                packaging: 20,                           // 紙箱與緩衝材
-                repack: Math.round(hourlyWage * 0.25),   // 重新包裝清點耗時 15 分鐘 (0.25h)
-                csTime: Math.round(hourlyWage * 0.5),    // 客服與客人核對安撫耗時 30 分鐘 (0.5h)
-                whTime: Math.round(hourlyWage * 0.5),    // 傳統監控翻找拉帶子耗時 30 分鐘 (0.5h)
-                returns: 100                             // 爭議退貨整新流失成本
+                shipping: 60,
+                product: Math.round(productValue * 0.4),
+                packaging: 15,
+                repack: Math.round(hourlyWage * 0.25),
+                csTime: Math.round(hourlyWage * 0.5),
+                whTime: Math.round(hourlyWage * 0.5),
+                returns: 100
             };
 
-            // 4. 計算拆解清單
             const breakdown = {
                 '重新配送運費': unitCosts.shipping * monthlyErrors,
                 '商品成本 / 損耗': unitCosts.product * monthlyErrors,
@@ -191,16 +289,23 @@
                 '退換貨 / 拒收': unitCosts.returns * monthlyErrors
             };
 
-            // 5. UI 更新資料顯示
             document.getElementById('dailyVolumeText').innerText = dailyVolume.toLocaleString() + ' 單';
             document.getElementById('errorRateText').innerText = errorRate + ' 件';
+            document.getElementById('dobybotPriceText').innerText = dobybotPrice.toFixed(1) + ' 元';
+
+            // 同步更新列印底部「垂直參數列表」的內容
+            document.getElementById('p-volume').innerText = dailyVolume.toLocaleString() + ' 單';
+            document.getElementById('p-rate').innerText = errorRate + '%';
+            document.getElementById('p-days').innerText = workDays + ' 天';
+            document.getElementById('p-value').innerText = 'NT$ ' + productValue.toLocaleString();
+            document.getElementById('p-dbprice').innerText = dobybotPrice.toFixed(1) + ' 元 / 單';
 
             let breakdownHtml = '';
             let totalLossCalculated = 0;
             for (const [key, val] of Object.entries(breakdown)) {
                 totalLossCalculated += val;
                 breakdownHtml += `
-                    <div class="flex justify-between items-center">
+                    <div class="flex justify-between items-center py-0.5">
                         <span class="text-slate-500">${key} <span class="text-[10px] bg-slate-200 px-1.5 py-0.5 rounded text-slate-600 ml-1">${monthlyErrors} 件</span></span>
                         <span class="font-bold text-slate-700">NT$${val.toLocaleString()}</span>
                     </div>
@@ -208,44 +313,35 @@
             }
             document.getElementById('costBreakdown').innerHTML = breakdownHtml;
 
-            // 6. 爭議耗費工時與人力成本連動對齊 (客服時間 0.5h + 倉庫時間 0.5h = 每單處理花 1.5 小時包含重包等雜務)
-            const disputeHoursPerOrder = 1; // 客服 0.5h + 倉庫 0.5h = 共 1 小時純查證工時
-            const totalDisputeHours = Math.round(monthlyErrors * disputeHoursPerOrder);
+            const totalDisputeHours = Math.round(monthlyErrors * 1);
             const totalDisputeLaborCost = breakdown['客服查證時間'] + breakdown['倉庫查證時間'];
 
-            // 7. Dobybot 實際效益計算邏輯 (1.1元/單)
-            const dobybotServiceFee = Math.round(monthlyOrders * 1.1); // 指定的 1.1元/單
-            
-            // 智慧錄影可免除 100% 的查證時間成本，並幫商家在客訴爭議中防摔防漏，降低 80% 的運費、商品、包材及整新損失
+            const dobybotServiceFee = Math.round(monthlyOrders * dobybotPrice); 
             const residualLoss = Math.round((breakdown['重新配送運費'] + breakdown['商品成本 / 損耗'] + breakdown['包材成本'] + breakdown['退換貨 / 拒收']) * 0.2) + breakdown['重新包裝人力'];
             const costAfterDobybot = dobybotServiceFee + residualLoss;
             const monthlySavings = totalLossCalculated - costAfterDobybot;
 
-            // 回本期計算 (假設建置系統設定開通費 15,000 元)
-            const setupFee = 15000;
-            const paybackPeriod = monthlySavings > 0 ? (setupFee / monthlySavings).toFixed(1) : '∞';
-
-            // 更新結果區塊
             document.getElementById('totalLossRange').innerText = `NT$${totalLossCalculated.toLocaleString()}`;
             document.getElementById('costBefore').innerText = `NT$${totalLossCalculated.toLocaleString()}`;
             document.getElementById('costAfter').innerText = `NT$${costAfterDobybot.toLocaleString()}`;
             document.getElementById('monthlySavingsText').innerText = `NT$${Math.max(0, monthlySavings).toLocaleString()}`;
-            document.getElementById('paybackPeriod').innerText = (monthlySavings > 0 ? (paybackPeriod > 12 ? '12+' : paybackPeriod) : '∞') + ' 個月';
             
             document.getElementById('disputeHours').innerText = `約 ${totalDisputeHours} 小時`;
             document.getElementById('disputeLaborCost').innerText = `NT$${totalDisputeLaborCost.toLocaleString()}`;
 
-            const staffSaved = (monthlySavings / staffSalary).toFixed(1);
+            const staffSaved = (monthlySavings / (staffSalary || 32000)).toFixed(1);
             document.getElementById('summaryConclusion').innerHTML = 
-                `以您目前的規模，每月問題訂單導致的總隱性損失高達 <b>NT$${totalLossCalculated.toLocaleString()}</b>。導入 Dobybot 後（以智能錄影 1.1 元/單計算），加計系統能為您追回與省下的 80% 爭議財損及 100% 查證工時，每月實際可為您省下高達 <b>NT$${Math.max(0, monthlySavings).toLocaleString()}</b> 的營運黑洞，這相當於省下了 <b>${staffSaved} 位</b> 包貨人員的人事預算。`;
+                `以您目前的規模，每月問題訂單導致的總隱性損失高達 <b>NT$${totalLossCalculated.toLocaleString()}</b>。導入 Dobybot 後（以智慧影像 ${dobybotPrice.toFixed(1)} 元/單計算），加計系統能為您追回與省下的 80% 爭議財損及 100% 查證工時，每月實際可為您省下高達 <b>NT$${Math.max(0, monthlySavings).toLocaleString()}</b> 的營運黑洞，這相當於省下了 <b>${staffSaved} 位</b> 包貨人員的人事預算。`;
         }
 
-        // 監聽所有輸入欄位變動
-        [dailyVolumeInput, errorRateInput, workDaysInput, staffCountInput, staffSalaryInput].forEach(input => {
-            input.addEventListener('input', updateCalculator);
+        const inputs = [dailyVolumeInput, errorRateInput, workDaysInput, staffCountInput, staffSalaryInput, productValueInput, dobybotPriceInput];
+        inputs.forEach(input => {
+            if(input) {
+                input.addEventListener('input', updateCalculator);
+                input.addEventListener('change', updateCalculator);
+            }
         });
 
-        // 首次加載頁面初始化
         updateCalculator();
     </script>
 </body>
